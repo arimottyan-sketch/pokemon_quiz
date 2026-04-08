@@ -51,6 +51,7 @@ def init_game(ids):
     st.session_state.score = 0
     st.session_state.missed = []
     st.session_state.finished = False
+    st.session_state.result = None  # ←追加
 
 # -----------------------------
 # UI
@@ -90,19 +91,29 @@ if "ids" in st.session_state and not st.session_state.finished:
 
     col1, col2 = st.columns(2)
 
-    # 回答
+    # 回答（変更）
     if col1.button("送信"):
         if ans == name:
-            st.success("正解！")
+            st.session_state.result = ("正解！", True)
             st.session_state.score += 1
         else:
-            st.error(f"不正解！ 正解は {name}")
+            st.session_state.result = (f"不正解！ 正解は {name}", False)
             st.session_state.missed.append(pokemon_id)
 
-        st.session_state.index += 1
-        st.rerun()
+    # 結果表示（追加）
+    if st.session_state.result:
+        message, is_correct = st.session_state.result
+        if is_correct:
+            st.success(message)
+        else:
+            st.error(message)
 
-    # 途中終了
+        if st.button("次の問題へ"):
+            st.session_state.index += 1
+            st.session_state.result = None
+            st.rerun()
+
+    # 途中終了（変更なし）
     if col2.button("途中終了"):
         st.session_state.finished = True
         st.rerun()
