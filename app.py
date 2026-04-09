@@ -89,7 +89,7 @@ if "ids" in st.session_state and not st.session_state.finished:
     # 入力
     ans = st.text_input("名前をカタカナで入力", key=f"input_{i}")
 
-    col1, spacer, col2 = st.columns([1, 5, 1])
+    col1, spacer, col2 = st.columns([1, 4, 2])
 
     # 回答（変更）
     if col1.button("送信"):
