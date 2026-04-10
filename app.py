@@ -89,13 +89,13 @@ if "ids" in st.session_state and not st.session_state.finished:
     # 入力
     col1, spacer, col2 = st.columns([1, 4, 2])
 
-if col1.button("送信"):
-    if ans == name:
-        st.session_state.result = ("正解！", True)
-        st.session_state.score += 1
-    else:
-        st.session_state.result = (f"不正解！ 正解は {name}", False)
-        st.session_state.missed.append(pokemon_id)
+    if col1.button("送信"):
+      if ans == name:
+          st.session_state.result = ("正解！", True)
+          st.session_state.score += 1
+      else:
+          st.session_state.result = (f"不正解！ 正解は {name}", False)
+          st.session_state.missed.append(pokemon_id)
 
     # 結果表示（追加）
     if st.session_state.result:
