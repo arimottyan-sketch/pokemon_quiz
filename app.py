@@ -111,46 +111,58 @@ if "ids" in st.session_state and not st.session_state.finished:
         else:
             st.error(message)
 
-        # ---- JS（ここだけ強化）----
+        # ---- 最終安定版 JS ----
         components.html("""
         <script>
-        if (!window.enterHandlerAdded) {
-            window.enterHandlerAdded = true;
-            window.lastEnterTime = 0;
+        (function() {
+            const parentDoc = window.parent.document;
 
-            document.addEventListener("keydown", function(e) {
+            const isMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
 
-                const isMobile = /iPhone|Android.+Mobile/.test(navigator.userAgent);
+            if (!isMobile) {
 
-                if (e.key === "Enter") {
+                if (!window.pokemonQuizHandler) {
+                    window.pokemonQuizHandler = true;
+                    window.lastEnterTime = 0;
 
-                    if (isMobile) return; // スマホは無視
+                    parentDoc.addEventListener("keydown", function(e) {
+                        if (e.key === "Enter") {
 
-                    const now = Date.now();
+                            const now = Date.now();
+                            if (now - window.lastEnterTime < 500) return;
+                            window.lastEnterTime = now;
 
-                    // 送信直後は無効（0.5秒）
-                    if (now - window.lastEnterTime < 500) return;
+                            const buttons = parentDoc.querySelectorAll('button');
 
-                    window.lastEnterTime = now;
+                            // ① テキスト一致優先
+                            for (let i = buttons.length - 1; i >= 0; i--) {
+                                if (buttons[i].innerText && buttons[i].innerText.includes("次の問題へ")) {
+                                    buttons[i].click();
+                                    return;
+                                }
+                            }
 
-                    const buttons = window.parent.document.querySelectorAll('button');
-
-                    buttons.forEach(btn => {
-                        if (btn.innerText.includes("次の問題へ")) {
-                            btn.click();
+                            // ② fallback
+                            if (buttons.length > 0) {
+                                buttons[buttons.length - 1].click();
+                            }
                         }
                     });
                 }
-            });
-        }
 
-        // フォーカス
-        setTimeout(() => {
-            const inputs = window.parent.document.querySelectorAll('input');
-            if (inputs.length > 0) {
-                inputs[inputs.length - 1].focus();
+                // フォーカス強化
+                const focusInput = () => {
+                    const inputs = parentDoc.querySelectorAll('input');
+                    if (inputs.length > 0) {
+                        inputs[inputs.length - 1].focus();
+                    }
+                };
+
+                setTimeout(focusInput, 100);
+                setTimeout(focusInput, 300);
+                setTimeout(focusInput, 600);
             }
-        }, 200);
+        })();
         </script>
         """, height=0)
 
