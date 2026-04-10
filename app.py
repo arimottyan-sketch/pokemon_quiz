@@ -125,19 +125,19 @@ if "ids" in st.session_state and not st.session_state.finished:
             st.rerun()
 
 
-import streamlit.components.v1 as components
+       import streamlit.components.v1 as components
 
-if st.session_state.result:
-    components.html(f"""
-    <script>
-    let lastSubmitTime = Date.now();
+       if st.session_state.result:
+          components.html(f"""
+          <script>
+          let lastSubmitTime = Date.now();
 
-    document.addEventListener("keydown", function(e) {{
-        if (e.key === "Enter") {{
-            const now = Date.now();
-            if (now - lastSubmitTime > 500) {{
-                const buttons = window.parent.document.querySelectorAll('button');
-                buttons.forEach(btn => {{
+          document.addEventListener("keydown", function(e) {{
+            if (e.key === "Enter") {{
+              const now = Date.now();
+               if (now - lastSubmitTime > 500) {{
+                  const buttons = window.parent.document.querySelectorAll('button');
+                   buttons.forEach(btn => {{
                     if (btn.innerText.includes("次の問題へ")) {{
                         btn.click();
                     }}
