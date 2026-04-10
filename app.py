@@ -127,10 +127,10 @@ if "ids" in st.session_state and not st.session_state.finished:
                 const input = inputs[inputs.length - 1];
 
                 if (isCorrect) {{
-                    input.style.border = "2px solid #28a745";
+                    input.style.border = "4px solid #28a745";
                     input.style.boxShadow = "0 0 0 2px rgba(40,167,69,0.25)";
                 }} else {{
-                    input.style.border = "2px solid #dc3545";
+                    input.style.border = "4px solid #dc3545";
                     input.style.boxShadow = "0 0 0 2px rgba(220,53,69,0.25)";
                 }}
             }}
