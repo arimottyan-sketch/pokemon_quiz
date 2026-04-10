@@ -89,12 +89,7 @@ if "ids" in st.session_state and not st.session_state.finished:
     # 入力
     col1, spacer, col2 = st.columns([1, 4, 2])
 
-with col1:
-    with st.form(key=f"form_{i}"):
-        ans = st.text_input("名前をカタカナで入力", key=f"input_{i}")
-        submitted = st.form_submit_button("送信")
-
-if submitted:
+if col1.button("送信"):
     if ans == name:
         st.session_state.result = ("正解！", True)
         st.session_state.score += 1
