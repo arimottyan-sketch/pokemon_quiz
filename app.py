@@ -111,7 +111,7 @@ if "ids" in st.session_state and not st.session_state.finished:
         else:
             st.error(message)
 
-        # ---- 最終完全安定版 JS（ここだけ変更）----
+        # ---- 最終安定版 JS ----
         components.html("""
         <script>
         (function() {
@@ -128,15 +128,13 @@ if "ids" in st.session_state and not st.session_state.finished:
                     parentDoc.addEventListener("keydown", function(e) {
                         if (e.key === "Enter") {
 
-                            // 入力欄でのEnterは無視（←最重要）
-                            if (e.target.tagName === "INPUT") return;
-
                             const now = Date.now();
                             if (now - window.lastEnterTime < 500) return;
                             window.lastEnterTime = now;
 
                             const buttons = parentDoc.querySelectorAll('button');
 
+                            // ① テキスト一致優先
                             for (let i = buttons.length - 1; i >= 0; i--) {
                                 if (buttons[i].innerText && buttons[i].innerText.includes("次の問題へ")) {
                                     buttons[i].click();
@@ -144,6 +142,7 @@ if "ids" in st.session_state and not st.session_state.finished:
                                 }
                             }
 
+                            // ② fallback
                             if (buttons.length > 0) {
                                 buttons[buttons.length - 1].click();
                             }
@@ -151,6 +150,7 @@ if "ids" in st.session_state and not st.session_state.finished:
                     });
                 }
 
+                // フォーカス強化
                 const focusInput = () => {
                     const inputs = parentDoc.querySelectorAll('input');
                     if (inputs.length > 0) {
