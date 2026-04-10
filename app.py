@@ -124,38 +124,6 @@ if "ids" in st.session_state and not st.session_state.finished:
             st.session_state.result = None
             st.rerun()
 
-
-       import streamlit.components.v1 as components
-
-       if st.session_state.result:
-          components.html(f"""
-          <script>
-          let lastSubmitTime = Date.now();
-
-          document.addEventListener("keydown", function(e) {{
-            if (e.key === "Enter") {{
-              const now = Date.now();
-               if (now - lastSubmitTime > 500) {{
-                  const buttons = window.parent.document.querySelectorAll('button');
-                   buttons.forEach(btn => {{
-                    if (btn.innerText.includes("次の問題へ")) {{
-                        btn.click();
-                    }}
-                }});
-            }}
-        }}
-    }});
-
-    // 入力欄にフォーカス
-    setTimeout(() => {{
-        const inputs = window.parent.document.querySelectorAll('input');
-        if (inputs.length > 0) {{
-            inputs[inputs.length - 1].focus();
-        }}
-    }}, 100);
-    </script>
-    """, height=0)
-
 # 終了画面
 if "finished" in st.session_state and st.session_state.finished:
     total = len(st.session_state.ids)
