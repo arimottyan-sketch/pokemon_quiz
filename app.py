@@ -91,7 +91,6 @@ if "ids" in st.session_state and not st.session_state.finished:
         submit = col1.form_submit_button("送信")
         stop = col2.form_submit_button("途中終了")
 
-    # ★ ここだけ変更（多重送信防止）
     if submit and st.session_state.result is None:
         if ans == name:
             st.session_state.result = ("正解！", True)
@@ -112,7 +111,7 @@ if "ids" in st.session_state and not st.session_state.finished:
         else:
             st.error(message)
 
-        # ---- 最終完全安定版 JS ----
+        # ---- 最終JS（フォーカス削除版）----
         components.html("""
         <script>
         (function() {
@@ -129,8 +128,9 @@ if "ids" in st.session_state and not st.session_state.finished:
                     parentDoc.addEventListener("keydown", function(e) {
                         if (e.key === "Enter") {
 
-                            // 入力欄でのEnterは無視
-                            if (e.target.tagName === "INPUT") return;
+                            // 回答表示中のみ有効
+                            const hasResult = parentDoc.body.innerText.includes("正解！") || parentDoc.body.innerText.includes("不正解！");
+                            if (!hasResult) return;
 
                             const now = Date.now();
                             if (now - window.lastEnterTime < 500) return;
@@ -152,16 +152,6 @@ if "ids" in st.session_state and not st.session_state.finished:
                     });
                 }
 
-                const focusInput = () => {
-                    const inputs = parentDoc.querySelectorAll('input');
-                    if (inputs.length > 0) {
-                        inputs[inputs.length - 1].focus();
-                    }
-                };
-
-                setTimeout(focusInput, 100);
-                setTimeout(focusInput, 300);
-                setTimeout(focusInput, 600);
             }
         })();
         </script>
