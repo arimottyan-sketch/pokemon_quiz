@@ -111,22 +111,38 @@ if "ids" in st.session_state and not st.session_state.finished:
         else:
             st.error(message)
 
-        # ---- 最終安定版 JS ----
-        components.html("""
+        # ---- 最終安定版 JS（色変更追加）----
+        components.html(f"""
         <script>
-        (function() {
+        (function() {{
             const parentDoc = window.parent.document;
 
             const isMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
 
-            if (!isMobile) {
+            const isCorrect = {str(is_correct).lower()};
 
-                if (!window.pokemonQuizHandler) {
+            function applyStyle() {{
+                const inputs = parentDoc.querySelectorAll('input');
+                if (inputs.length === 0) return;
+                const input = inputs[inputs.length - 1];
+
+                if (isCorrect) {{
+                    input.style.border = "2px solid #28a745";
+                    input.style.boxShadow = "0 0 0 2px rgba(40,167,69,0.25)";
+                }} else {{
+                    input.style.border = "2px solid #dc3545";
+                    input.style.boxShadow = "0 0 0 2px rgba(220,53,69,0.25)";
+                }}
+            }}
+
+            if (!isMobile) {{
+
+                if (!window.pokemonQuizHandler) {{
                     window.pokemonQuizHandler = true;
                     window.lastEnterTime = 0;
 
-                    parentDoc.addEventListener("keydown", function(e) {
-                        if (e.key === "Enter") {
+                    parentDoc.addEventListener("keydown", function(e) {{
+                        if (e.key === "Enter") {{
 
                             const now = Date.now();
                             if (now - window.lastEnterTime < 500) return;
@@ -134,35 +150,34 @@ if "ids" in st.session_state and not st.session_state.finished:
 
                             const buttons = parentDoc.querySelectorAll('button');
 
-                            // ① テキスト一致優先
-                            for (let i = buttons.length - 1; i >= 0; i--) {
-                                if (buttons[i].innerText && buttons[i].innerText.includes("次の問題へ")) {
+                            for (let i = buttons.length - 1; i >= 0; i--) {{
+                                if (buttons[i].innerText && buttons[i].innerText.includes("次の問題へ")) {{
                                     buttons[i].click();
                                     return;
-                                }
-                            }
+                                }}
+                            }}
 
-                            // ② fallback
-                            if (buttons.length > 0) {
+                            if (buttons.length > 0) {{
                                 buttons[buttons.length - 1].click();
-                            }
-                        }
-                    });
-                }
+                            }}
+                        }}
+                    }});
+                }}
 
-                // フォーカス強化
-                const focusInput = () => {
+                const focusInput = () => {{
                     const inputs = parentDoc.querySelectorAll('input');
-                    if (inputs.length > 0) {
-                        inputs[inputs.length - 1].focus();
-                    }
-                };
+                    if (inputs.length > 0) {{
+                        const input = inputs[inputs.length - 1];
+                        input.focus();
+                        applyStyle();
+                    }}
+                }};
 
                 setTimeout(focusInput, 100);
                 setTimeout(focusInput, 300);
                 setTimeout(focusInput, 600);
-            }
-        })();
+            }}
+        }})();
         </script>
         """, height=0)
 
