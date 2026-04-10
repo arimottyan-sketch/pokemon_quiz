@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import random
+import streamlit.components.v1 as components
 
 # -----------------------------
 # 設定
@@ -71,7 +72,6 @@ if "ids" in st.session_state and not st.session_state.finished:
     i = st.session_state.index
     total = len(ids)
 
-    # 終了判定
     if i >= total:
         st.session_state.finished = True
         st.rerun()
@@ -79,25 +79,18 @@ if "ids" in st.session_state and not st.session_state.finished:
     pokemon_id = ids[i]
     name, img_url = get_pokemon_data(pokemon_id)
 
-    # 情報表示
     st.markdown(f"### 問題 {i+1} / {total}")
     st.markdown(f"正解数: {st.session_state.score} / {total}")
 
     if img_url:
         st.image(img_url, width=300)
 
-    # ---- ここ修正（formを全幅で使う） ----
     with st.form(key=f"form_{i}"):
         ans = st.text_input("名前をカタカナで入力", key=f"input_{i}")
-
         col1, spacer, col2 = st.columns([1, 4, 2])
-
         submit = col1.form_submit_button("送信")
-
-        # 途中終了はform外に出せないのでここで処理だけ分岐
         stop = col2.form_submit_button("途中終了")
 
-    # 送信処理
     if submit:
         if ans == name:
             st.session_state.result = ("正解！", True)
@@ -106,7 +99,6 @@ if "ids" in st.session_state and not st.session_state.finished:
             st.session_state.result = (f"不正解！ 正解は {name}", False)
             st.session_state.missed.append(pokemon_id)
 
-    # 途中終了処理
     if stop:
         st.session_state.finished = True
         st.rerun()
@@ -118,6 +110,40 @@ if "ids" in st.session_state and not st.session_state.finished:
             st.success(message)
         else:
             st.error(message)
+
+        # ---- JS（修正版）----
+        components.html("""
+        <script>
+        if (!window.enterHandlerAdded) {
+            window.enterHandlerAdded = true;
+            window.lastEnterTime = 0;
+
+            document.addEventListener("keydown", function(e) {
+                if (e.key === "Enter") {
+                    const now = Date.now();
+                    if (now - window.lastEnterTime > 500) {
+                        window.lastEnterTime = now;
+
+                        const buttons = window.parent.document.querySelectorAll('button');
+                        buttons.forEach(btn => {
+                            if (btn.innerText.includes("次の問題へ")) {
+                                btn.click();
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        // フォーカス
+        setTimeout(() => {
+            const inputs = window.parent.document.querySelectorAll('input');
+            if (inputs.length > 0) {
+                inputs[inputs.length - 1].focus();
+            }
+        }, 200);
+        </script>
+        """, height=0)
 
         if st.button("次の問題へ"):
             st.session_state.index += 1
