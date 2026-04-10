@@ -51,7 +51,7 @@ def init_game(ids):
     st.session_state.score = 0
     st.session_state.missed = []
     st.session_state.finished = False
-    st.session_state.result = None  # ←追加
+    st.session_state.result = None
 
 # -----------------------------
 # UI
@@ -86,13 +86,19 @@ if "ids" in st.session_state and not st.session_state.finished:
     if img_url:
         st.image(img_url, width=300)
 
-    # 入力
-    ans = st.text_input("名前をカタカナで入力", key=f"input_{i}")
+    # ---- ここ修正（formを全幅で使う） ----
+    with st.form(key=f"form_{i}"):
+        ans = st.text_input("名前をカタカナで入力", key=f"input_{i}")
 
-    col1, spacer, col2 = st.columns([1, 5, 2])
+        col1, spacer, col2 = st.columns([1, 4, 2])
 
-    # 回答（変更）
-    if col1.button("送信"):
+        submit = col1.form_submit_button("送信")
+
+        # 途中終了はform外に出せないのでここで処理だけ分岐
+        stop = col2.form_submit_button("途中終了")
+
+    # 送信処理
+    if submit:
         if ans == name:
             st.session_state.result = ("正解！", True)
             st.session_state.score += 1
@@ -100,7 +106,12 @@ if "ids" in st.session_state and not st.session_state.finished:
             st.session_state.result = (f"不正解！ 正解は {name}", False)
             st.session_state.missed.append(pokemon_id)
 
-    # 結果表示（追加）
+    # 途中終了処理
+    if stop:
+        st.session_state.finished = True
+        st.rerun()
+
+    # 結果表示
     if st.session_state.result:
         message, is_correct = st.session_state.result
         if is_correct:
@@ -112,11 +123,6 @@ if "ids" in st.session_state and not st.session_state.finished:
             st.session_state.index += 1
             st.session_state.result = None
             st.rerun()
-
-    # 途中終了（変更なし）
-    if col2.button("途中終了"):
-        st.session_state.finished = True
-        st.rerun()
 
 # 終了画面
 if "finished" in st.session_state and st.session_state.finished:
