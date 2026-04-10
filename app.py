@@ -91,7 +91,8 @@ if "ids" in st.session_state and not st.session_state.finished:
         submit = col1.form_submit_button("送信")
         stop = col2.form_submit_button("途中終了")
 
-    if submit:
+    # ★ ここだけ変更（多重送信防止）
+    if submit and st.session_state.result is None:
         if ans == name:
             st.session_state.result = ("正解！", True)
             st.session_state.score += 1
@@ -111,7 +112,7 @@ if "ids" in st.session_state and not st.session_state.finished:
         else:
             st.error(message)
 
-        # ---- 最終安定版 JS ----
+        # ---- 最終完全安定版 JS ----
         components.html("""
         <script>
         (function() {
@@ -128,13 +129,15 @@ if "ids" in st.session_state and not st.session_state.finished:
                     parentDoc.addEventListener("keydown", function(e) {
                         if (e.key === "Enter") {
 
+                            // 入力欄でのEnterは無視
+                            if (e.target.tagName === "INPUT") return;
+
                             const now = Date.now();
                             if (now - window.lastEnterTime < 500) return;
                             window.lastEnterTime = now;
 
                             const buttons = parentDoc.querySelectorAll('button');
 
-                            // ① テキスト一致優先
                             for (let i = buttons.length - 1; i >= 0; i--) {
                                 if (buttons[i].innerText && buttons[i].innerText.includes("次の問題へ")) {
                                     buttons[i].click();
@@ -142,7 +145,6 @@ if "ids" in st.session_state and not st.session_state.finished:
                                 }
                             }
 
-                            // ② fallback
                             if (buttons.length > 0) {
                                 buttons[buttons.length - 1].click();
                             }
@@ -150,7 +152,6 @@ if "ids" in st.session_state and not st.session_state.finished:
                     });
                 }
 
-                // フォーカス強化
                 const focusInput = () => {
                     const inputs = parentDoc.querySelectorAll('input');
                     if (inputs.length > 0) {
