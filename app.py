@@ -87,15 +87,18 @@ if "ids" in st.session_state and not st.session_state.finished:
         st.image(img_url, width=300)
 
     # 入力
-    col1, spacer, col2 = st.columns([1, 4, 2])
+    ans = st.text_input("名前をカタカナで入力", key=f"input_{i}")
 
+    col1, spacer, col2 = st.columns([1, 4, 3])
+
+    # 回答（変更）
     if col1.button("送信"):
-      if ans == name:
-          st.session_state.result = ("正解！", True)
-          st.session_state.score += 1
-      else:
-          st.session_state.result = (f"不正解！ 正解は {name}", False)
-          st.session_state.missed.append(pokemon_id)
+        if ans == name:
+            st.session_state.result = ("正解！", True)
+            st.session_state.score += 1
+        else:
+            st.session_state.result = (f"不正解！ 正解は {name}", False)
+            st.session_state.missed.append(pokemon_id)
 
     # 結果表示（追加）
     if st.session_state.result:
