@@ -111,22 +111,27 @@ if "ids" in st.session_state and not st.session_state.finished:
         else:
             st.error(message)
 
-        # ---- 最終安定版 JS ----
-        components.html("""
+        # ---- 修正版 JS（完全分離）----
+        components.html(f"""
         <script>
-        (function() {
+        (function() {{
             const parentDoc = window.parent.document;
 
             const isMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
 
-            if (!isMobile) {
+            const hasAnswered = true;  // ←ここが重要（resultがある＝回答済み）
 
-                if (!window.pokemonQuizHandler) {
+            if (!isMobile) {{
+
+                if (!window.pokemonQuizHandler) {{
                     window.pokemonQuizHandler = true;
                     window.lastEnterTime = 0;
 
-                    parentDoc.addEventListener("keydown", function(e) {
-                        if (e.key === "Enter") {
+                    parentDoc.addEventListener("keydown", function(e) {{
+                        if (e.key === "Enter") {{
+
+                            // 未回答なら何もしない（submitに任せる）
+                            if (!hasAnswered) return;
 
                             const now = Date.now();
                             if (now - window.lastEnterTime < 500) return;
@@ -134,35 +139,32 @@ if "ids" in st.session_state and not st.session_state.finished:
 
                             const buttons = parentDoc.querySelectorAll('button');
 
-                            // ① テキスト一致優先
-                            for (let i = buttons.length - 1; i >= 0; i--) {
-                                if (buttons[i].innerText && buttons[i].innerText.includes("次の問題へ")) {
+                            for (let i = buttons.length - 1; i >= 0; i--) {{
+                                if (buttons[i].innerText && buttons[i].innerText.includes("次の問題へ")) {{
                                     buttons[i].click();
                                     return;
-                                }
-                            }
+                                }}
+                            }}
 
-                            // ② fallback
-                            if (buttons.length > 0) {
+                            if (buttons.length > 0) {{
                                 buttons[buttons.length - 1].click();
-                            }
-                        }
-                    });
-                }
+                            }}
+                        }}
+                    }});
+                }}
 
-                // フォーカス強化
-                const focusInput = () => {
+                const focusInput = () => {{
                     const inputs = parentDoc.querySelectorAll('input');
-                    if (inputs.length > 0) {
+                    if (inputs.length > 0) {{
                         inputs[inputs.length - 1].focus();
-                    }
-                };
+                    }}
+                }};
 
                 setTimeout(focusInput, 100);
                 setTimeout(focusInput, 300);
                 setTimeout(focusInput, 600);
-            }
-        })();
+            }}
+        }})();
         </script>
         """, height=0)
 
