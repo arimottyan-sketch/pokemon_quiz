@@ -111,7 +111,7 @@ if "ids" in st.session_state and not st.session_state.finished:
         else:
             st.error(message)
 
-        # ---- JS（修正版）----
+        # ---- JS（ここだけ強化）----
         components.html("""
         <script>
         if (!window.enterHandlerAdded) {
@@ -119,18 +119,27 @@ if "ids" in st.session_state and not st.session_state.finished:
             window.lastEnterTime = 0;
 
             document.addEventListener("keydown", function(e) {
-                if (e.key === "Enter") {
-                    const now = Date.now();
-                    if (now - window.lastEnterTime > 500) {
-                        window.lastEnterTime = now;
 
-                        const buttons = window.parent.document.querySelectorAll('button');
-                        buttons.forEach(btn => {
-                            if (btn.innerText.includes("次の問題へ")) {
-                                btn.click();
-                            }
-                        });
-                    }
+                const isMobile = /iPhone|Android.+Mobile/.test(navigator.userAgent);
+
+                if (e.key === "Enter") {
+
+                    if (isMobile) return; // スマホは無視
+
+                    const now = Date.now();
+
+                    // 送信直後は無効（0.5秒）
+                    if (now - window.lastEnterTime < 500) return;
+
+                    window.lastEnterTime = now;
+
+                    const buttons = window.parent.document.querySelectorAll('button');
+
+                    buttons.forEach(btn => {
+                        if (btn.innerText.includes("次の問題へ")) {
+                            btn.click();
+                        }
+                    });
                 }
             });
         }
