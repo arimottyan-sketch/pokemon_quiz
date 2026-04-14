@@ -38,9 +38,14 @@ def get_pokemon_data(pokemon_id):
             if name:
                 break
 
-        return name, img_url
+        # タイプと図鑑説明を取得
+        types = [t['type']['name'] for t in data['types']]
+        desc = next((f['flavor_text'] for f in s_data['flavor_text_entries'] if f['language']['name'] == 'ja-Hrkt'), "")
+        desc = desc.replace('\n', ' ').replace('\u3000', ' ')
+
+        return name, img_url, types, desc
     except:
-        return None, None
+        return None, None, None, None
 
 # -----------------------------
 # 初期化
@@ -77,7 +82,7 @@ if "ids" in st.session_state and not st.session_state.finished:
         st.rerun()
 
     pokemon_id = ids[i]
-    name, img_url = get_pokemon_data(pokemon_id)
+    name, img_url, types, desc = get_pokemon_data(pokemon_id)
 
     st.markdown(f"### 問題 {i+1} / {total}")
     st.markdown(f"正解数: {st.session_state.score} / {total}")
@@ -92,11 +97,41 @@ if "ids" in st.session_state and not st.session_state.finished:
         stop = col2.form_submit_button("途中終了")
 
     if submit and st.session_state.result is None:
+        # 特殊メッセージ設定
+        specials = {
+            "ピカチュウ": "10まんボルトだ！",
+            "トリトドン": "ぽわ～ぐちょぐちょ",
+            "ミカルゲ": "おんみょ～ん",
+            "ポッチャマ": "ぽちゃぽっちゃ！",
+            "ノココッチ": "にげあしドロー",
+            "ヘラクロス": "むし！",
+            "ドラパルト": "ファントムダイブ！",
+            "サマヨール": "カースドボム！",
+            "ヨノワール": "カースドボム！",
+            "マシマシラ": "アドレナブレイン！",
+            "ゾロアーク": "とりひき！",
+            "スボミー": "むずむずかふん！",
+            "ビクティニ": "無限のパワー！",
+            "ゲッコウガ": "へんげんじざい！",
+            "ニャスパー": "もこお！",
+            "ミミッキュ": "ラス１なんやかんやできるミミッキュで",
+            "パモ": "床の隙間の汚れwatching．かわいいかわいいね"
+        }
+
         if ans == name:
-            st.session_state.result = ("正解！", True)
+            if name == "ソーナンス":
+                msg = "そ～なんす！"
+            elif name == "ソーナノ":
+                msg = "そ～なの！"
+            else:
+                extra = specials.get(name, "")
+                msg = f"正解！ {extra}".strip()
+            
+            st.session_state.result = (msg, True)
             st.session_state.score += 1
         else:
-            st.session_state.result = (f"不正解！ 正解は {name}", False)
+            extra = " いぬぬわん！" if (name == "ワンパチ" and ans in ["いぬぬわん", "イヌヌワン"]) else ""
+            st.session_state.result = (f"不正解！ 正解は {name}{extra}", False)
             st.session_state.missed.append(pokemon_id)
 
     if stop:
@@ -110,48 +145,38 @@ if "ids" in st.session_state and not st.session_state.finished:
             st.success(message)
         else:
             st.error(message)
+        
+        # タイプと図鑑説明の表示
+        st.info(f"**タイプ**: {', '.join(types)}  \n**図鑑説明**: {desc}")
 
         # ---- 最終JS（フォーカス削除版）----
         components.html("""
         <script>
         (function() {
             const parentDoc = window.parent.document;
-
             const isMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
-
             if (!isMobile) {
-
                 if (!window.pokemonQuizHandler) {
                     window.pokemonQuizHandler = true;
                     window.lastEnterTime = 0;
-
                     parentDoc.addEventListener("keydown", function(e) {
                         if (e.key === "Enter") {
-
-                            // 回答表示中のみ有効
-                            const hasResult = parentDoc.body.innerText.includes("正解！") || parentDoc.body.innerText.includes("不正解！");
+                            const bodyText = parentDoc.body.innerText;
+                            const hasResult = bodyText.includes("正解") || bodyText.includes("不正解") || bodyText.includes("そ～な");
                             if (!hasResult) return;
-
                             const now = Date.now();
                             if (now - window.lastEnterTime < 500) return;
                             window.lastEnterTime = now;
-
                             const buttons = parentDoc.querySelectorAll('button');
-
                             for (let i = buttons.length - 1; i >= 0; i--) {
                                 if (buttons[i].innerText && buttons[i].innerText.includes("次の問題へ")) {
                                     buttons[i].click();
                                     return;
                                 }
                             }
-
-                            if (buttons.length > 0) {
-                                buttons[buttons.length - 1].click();
-                            }
                         }
                     });
                 }
-
             }
         })();
         </script>
@@ -173,7 +198,6 @@ if "finished" in st.session_state and st.session_state.finished:
 
     if st.session_state.missed:
         st.write(f"ミス問題数: {len(st.session_state.missed)}")
-
         if st.button("ミスだけ復習"):
             init_game(st.session_state.missed.copy())
             st.rerun()
