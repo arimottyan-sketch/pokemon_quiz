@@ -36,10 +36,7 @@ def get_pokemon_data(pokemon_id):
         img_url = data['sprites']['other']['official-artwork']['front_default'] or data['sprites']['front_default']
         types_ja = [TYPE_MAP.get(t['type']['name'], t['type']['name']) for t in data['types']]
         s_data = requests.get(data['species']['url']).json()
-        name = None
-        for lang in ["ja-Hrkt", "ja", "en"]:
-            name = next((n['name'] for n in s_data['names'] if n['language']['name'] == lang), None)
-            if name: break
+        name = next((n['name'] for n in s_data['names'] if n['language']['name'] in ["ja-Hrkt", "ja"]), None)
         desc = ""
         for lang_code in ["ja-Hrkt", "ja"]:
             desc = next((f['flavor_text'] for f in s_data['flavor_text_entries'] if f['language']['name'] == lang_code), "")
@@ -59,6 +56,7 @@ def init_game(ids, is_review=False):
     st.session_state.score = 0
     st.session_state.finished = False
     st.session_state.result = None
+    st.session_state.is_review = is_review
     if not is_review:
         st.session_state.missed = []
 
@@ -76,17 +74,16 @@ if "ids" not in st.session_state:
 if "ids" in st.session_state and not st.session_state.finished:
     ids = st.session_state.ids
     i = st.session_state.index
-    total = len(ids)
-
-    if i >= total:
+    
+    if i >= len(ids):
         st.session_state.finished = True
         st.rerun()
 
     pokemon_id = ids[i]
     name, img_url, types, desc = get_pokemon_data(pokemon_id)
 
-    st.markdown(f"### 問題 {i+1} / {total}")
-    st.markdown(f"正解数: {st.session_state.score} / {total}")
+    st.markdown(f"### 問題 {i+1} / {len(ids)}")
+    st.markdown(f"正解数: {st.session_state.score} / {len(ids)}")
 
     if img_url:
         st.image(img_url, width=300)
@@ -114,29 +111,22 @@ if "ids" in st.session_state and not st.session_state.finished:
             
             st.session_state.result = (msg, True)
             st.session_state.score += 1
-            # 復習中ならミスリストから削除
-            if pokemon_id in st.session_state.missed:
+            # 復習中ならリストから消す
+            if st.session_state.is_review and pokemon_id in st.session_state.missed:
                 st.session_state.missed.remove(pokemon_id)
         else:
             extra = " いぬぬわん！" if (name == "ワンパチ" and ans in ["いぬぬわん", "イヌヌワン"]) else ""
             st.session_state.result = (f"不正解！ 正解は {name}{extra}", False)
-            # 初めてミスした時だけ追加
             if pokemon_id not in st.session_state.missed:
                 st.session_state.missed.append(pokemon_id)
 
     if stop:
-        # 途中終了時、未回答の問題をミスリストに追加（復習時に再度出るようにする）
-        remaining_ids = ids[i:]
-        if st.session_state.result and st.session_state.result[1] == False:
-            # 今解いて不正解だったものは既にmissedに入っている。未回答分はi+1以降
-            remaining_ids = ids[i+1:]
-        elif st.session_state.result and st.session_state.result[1] == True:
-            # 正解した場合はi+1以降
-            remaining_ids = ids[i+1:]
-            
-        for rid in remaining_ids:
-            if rid not in st.session_state.missed:
-                st.session_state.missed.append(rid)
+        # 復習モードの時だけ、未回答分（i+1以降、または回答中ならi以降）をミスリストに合流させる
+        if st.session_state.is_review:
+            start_idx = i if st.session_state.result is None else i + 1
+            for rid in ids[start_idx:]:
+                if rid not in st.session_state.missed:
+                    st.session_state.missed.append(rid)
         
         st.session_state.finished = True
         st.rerun()
@@ -184,16 +174,15 @@ if "ids" in st.session_state and not st.session_state.finished:
 
 if "finished" in st.session_state and st.session_state.finished:
     st.header("終了")
-    st.write(f"スコア: {st.session_state.score} / {len(st.session_state.ids)}")
+    st.write(f"今回のスコア: {st.session_state.score} / {len(st.session_state.ids)}")
     
     if st.session_state.missed:
-        st.write(f"現在のミス保持数: {len(st.session_state.missed)}問")
+        st.write(f"現在の復習対象: {len(st.session_state.missed)}問")
         if st.button("ミスだけ復習"):
-            # 復習モードとして初期化
             init_game(st.session_state.missed.copy(), is_review=True)
             st.rerun()
     else:
-        st.success("全問正解！")
+        st.success("すべてのミスをクリアしました！")
 
     if st.button("最初に戻る"):
         st.session_state.clear()
