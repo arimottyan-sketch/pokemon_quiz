@@ -18,7 +18,6 @@ REGIONS = {
     "パルデア (899-1025)": range(899, 1026)
 }
 
-# 英語タイプ名から日本語への変換辞書
 TYPE_MAP = {
     "normal": "ノーマル", "fire": "ほのお", "water": "みず", "grass": "くさ",
     "electric": "でんき", "ice": "こおり", "fighting": "かくとう", "poison": "どく",
@@ -33,37 +32,19 @@ TYPE_MAP = {
 @st.cache_data
 def get_pokemon_data(pokemon_id):
     try:
-        # 基本データの取得
         data = requests.get(f"https://pokeapi.co/api/v2/pokemon/{pokemon_id}").json()
-
-        img_url = data['sprites']['other']['official-artwork']['front_default']
-        if not img_url:
-            img_url = data['sprites']['front_default']
-
-        # タイプの日本語変換
-        types_en = [t['type']['name'] for t in data['types']]
-        types_ja = [TYPE_MAP.get(t, t) for t in types_en]
-
-        # 種族データの取得
+        img_url = data['sprites']['other']['official-artwork']['front_default'] or data['sprites']['front_default']
+        types_ja = [TYPE_MAP.get(t['type']['name'], t['type']['name']) for t in data['types']]
         s_data = requests.get(data['species']['url']).json()
-
-        # 名前の取得
         name = None
         for lang in ["ja-Hrkt", "ja", "en"]:
             name = next((n['name'] for n in s_data['names'] if n['language']['name'] == lang), None)
-            if name:
-                break
-
-        # 図鑑説明の取得（ja-Hrkt または ja を優先的に探す）
+            if name: break
         desc = ""
         for lang_code in ["ja-Hrkt", "ja"]:
             desc = next((f['flavor_text'] for f in s_data['flavor_text_entries'] if f['language']['name'] == lang_code), "")
-            if desc:
-                break
-        
-        # 不要な文字の掃除
+            if desc: break
         desc = desc.replace('\n', ' ').replace('\f', ' ').replace('\u3000', ' ')
-
         return name, img_url, types_ja, desc
     except:
         return None, None, None, None
@@ -71,28 +52,27 @@ def get_pokemon_data(pokemon_id):
 # -----------------------------
 # 初期化
 # -----------------------------
-def init_game(ids):
+def init_game(ids, is_review=False):
     st.session_state.ids = ids
     random.shuffle(st.session_state.ids)
     st.session_state.index = 0
     st.session_state.score = 0
-    st.session_state.missed = []
     st.session_state.finished = False
     st.session_state.result = None
+    if not is_review:
+        st.session_state.missed = []
 
 # -----------------------------
 # UI
 # -----------------------------
 st.title("ポケモンクイズ")
 
-# 地方選択
 if "ids" not in st.session_state:
     region = st.selectbox("地方を選択", list(REGIONS.keys()))
     if st.button("開始"):
         init_game(list(REGIONS[region]))
         st.rerun()
 
-# ゲーム本体
 if "ids" in st.session_state and not st.session_state.finished:
     ids = st.session_state.ids
     i = st.session_state.index
@@ -118,74 +98,67 @@ if "ids" in st.session_state and not st.session_state.finished:
         stop = col2.form_submit_button("途中終了")
 
     if submit and st.session_state.result is None:
-        # 特殊メッセージ設定
         specials = {
-            "ピカチュウ": "10まんボルトだ！",
-            "トリトドン": "ぽわ～ぐちょぐちょ",
-            "ミカルゲ": "おんみょ～ん",
-            "ポッチャマ": "ぽちゃぽっちゃ！",
-            "ノココッチ": "にげあしドロー",
-            "ヘラクロス": "むし！",
-            "ドラパルト": "ファントムダイブ！",
-            "サマヨール": "カースドボム！",
-            "ヨノワール": "カースドボム！",
-            "マシマシラ": "アドレナブレイン！",
-            "ゾロアーク": "とりひき！",
-            "スボミー": "むずむずかふん！",
-            "ビクティニ": "無限のパワー！",
-            "ゲッコウガ": "へんげんじざい！",
-            "ニャスパー": "もこお！",
-            "ミミッキュ": "ラス１なんやかんやできるミミッキュで",
-            "パモ": "床の隙間の汚れwatching．かわいいかわいいね"
+            "ピカチュウ": "10まんボルトだ！", "トリトドン": "ぽわ～ぐちょぐちょ", "ミカルゲ": "おんみょ～ん",
+            "ポッチャマ": "ぽちゃぽっちゃ！", "ノココッチ": "にげあしドロー", "ヘラクロス": "むし！",
+            "ドラパルト": "ファントムダイブ！", "サマヨール": "カースドボム！", "ヨノワール": "カースドボム！",
+            "マシマシラ": "アドレナブレイン！", "ゾロアーク": "とりひき！", "スボミー": "むずむずかふん！",
+            "ビクティニ": "無限のパワー！", "ゲッコウガ": "へんげんじざい！", "ニャスパー": "もこお！",
+            "ミミッキュ": "ラス１なんやかんやできるミミッキュで", "パモ": "床の隙間の汚れwatching．かわいいかわいいね"
         }
 
         if ans == name:
-            if name == "ソーナンス":
-                msg = "そ～なんす！"
-            elif name == "ソーナノ":
-                msg = "そ～なの！"
-            else:
-                extra = specials.get(name, "")
-                msg = f"正解！ {extra}".strip()
+            if name == "ソーナンス": msg = "そ～なんす！"
+            elif name == "ソーナノ": msg = "そ～なの！"
+            else: msg = f"正解！ {specials.get(name, '')}".strip()
             
             st.session_state.result = (msg, True)
             st.session_state.score += 1
+            # 復習中ならミスリストから削除
+            if pokemon_id in st.session_state.missed:
+                st.session_state.missed.remove(pokemon_id)
         else:
             extra = " いぬぬわん！" if (name == "ワンパチ" and ans in ["いぬぬわん", "イヌヌワン"]) else ""
             st.session_state.result = (f"不正解！ 正解は {name}{extra}", False)
-            st.session_state.missed.append(pokemon_id)
+            # 初めてミスした時だけ追加
+            if pokemon_id not in st.session_state.missed:
+                st.session_state.missed.append(pokemon_id)
 
     if stop:
+        # 途中終了時、未回答の問題をミスリストに追加（復習時に再度出るようにする）
+        remaining_ids = ids[i:]
+        if st.session_state.result and st.session_state.result[1] == False:
+            # 今解いて不正解だったものは既にmissedに入っている。未回答分はi+1以降
+            remaining_ids = ids[i+1:]
+        elif st.session_state.result and st.session_state.result[1] == True:
+            # 正解した場合はi+1以降
+            remaining_ids = ids[i+1:]
+            
+        for rid in remaining_ids:
+            if rid not in st.session_state.missed:
+                st.session_state.missed.append(rid)
+        
         st.session_state.finished = True
         st.rerun()
 
-    # 結果表示
     if st.session_state.result:
         message, is_correct = st.session_state.result
-        if is_correct:
-            st.success(message)
-        else:
-            st.error(message)
-        
-        # タイプと図鑑説明の表示
-        if types:
-            st.info(f"**タイプ**: {' / '.join(types)}  \n**図鑑説明**: {desc if desc else '図鑑説明が見つかりませんでした。'}")
+        if is_correct: st.success(message)
+        else: st.error(message)
+        if types: st.info(f"**タイプ**: {' / '.join(types)}  \n**図鑑説明**: {desc or '図鑑説明が見つかりませんでした。'}")
 
-        # ---- 最終JS（フォーカス削除版）----
         components.html("""
         <script>
         (function() {
             const parentDoc = window.parent.document;
-            const isMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
-            if (!isMobile) {
+            if (!/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent)) {
                 if (!window.pokemonQuizHandler) {
                     window.pokemonQuizHandler = true;
                     window.lastEnterTime = 0;
                     parentDoc.addEventListener("keydown", function(e) {
                         if (e.key === "Enter") {
                             const bodyText = parentDoc.body.innerText;
-                            const hasResult = bodyText.includes("正解") || bodyText.includes("不正解") || bodyText.includes("そ～な");
-                            if (!hasResult) return;
+                            if (!(bodyText.includes("正解") || bodyText.includes("不正解") || bodyText.includes("そ～な"))) return;
                             const now = Date.now();
                             if (now - window.lastEnterTime < 500) return;
                             window.lastEnterTime = now;
@@ -209,19 +182,15 @@ if "ids" in st.session_state and not st.session_state.finished:
             st.session_state.result = None
             st.rerun()
 
-# 終了画面
 if "finished" in st.session_state and st.session_state.finished:
-    total = len(st.session_state.ids)
-    answered = st.session_state.index
-
     st.header("終了")
-    st.write(f"スコア: {st.session_state.score} / {total}")
-    st.write(f"解答数: {answered} / {total}")
-
+    st.write(f"スコア: {st.session_state.score} / {len(st.session_state.ids)}")
+    
     if st.session_state.missed:
-        st.write(f"ミス問題数: {len(st.session_state.missed)}")
+        st.write(f"現在のミス保持数: {len(st.session_state.missed)}問")
         if st.button("ミスだけ復習"):
-            init_game(st.session_state.missed.copy())
+            # 復習モードとして初期化
+            init_game(st.session_state.missed.copy(), is_review=True)
             st.rerun()
     else:
         st.success("全問正解！")
