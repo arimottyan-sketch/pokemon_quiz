@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import random
 import streamlit.components.v1 as components
+import json  # ← 追加
 
 # -----------------------------
 # 設定
@@ -25,6 +26,19 @@ TYPE_MAP = {
     "rock": "いわ", "ghost": "ゴースト", "dragon": "ドラゴン", "dark": "あく",
     "steel": "はがね", "fairy": "フェアリー"
 }
+
+# -----------------------------
+# AI豆知識ロード（追加）
+# -----------------------------
+@st.cache_data
+def load_trivia():
+    try:
+        with open('pokemon_trivia.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return {}
+
+trivia_data = load_trivia()
 
 # -----------------------------
 # API
@@ -111,7 +125,6 @@ if "ids" in st.session_state and not st.session_state.finished:
             
             st.session_state.result = (msg, True)
             st.session_state.score += 1
-            # 復習中ならリストから消す
             if st.session_state.is_review and pokemon_id in st.session_state.missed:
                 st.session_state.missed.remove(pokemon_id)
         else:
@@ -121,7 +134,6 @@ if "ids" in st.session_state and not st.session_state.finished:
                 st.session_state.missed.append(pokemon_id)
 
     if stop:
-        # 復習モードの時だけ、未回答分（i+1以降、または回答中ならi以降）をミスリストに合流させる
         if st.session_state.is_review:
             start_idx = i if st.session_state.result is None else i + 1
             for rid in ids[start_idx:]:
@@ -135,7 +147,17 @@ if "ids" in st.session_state and not st.session_state.finished:
         message, is_correct = st.session_state.result
         if is_correct: st.success(message)
         else: st.error(message)
-        if types: st.info(f"**タイプ**: {' / '.join(types)}  \n**図鑑説明**: {desc or '図鑑説明が見つかりませんでした。'}")
+
+        if types:
+            st.info(f"**タイプ**: {' / '.join(types)}  \n**図鑑説明（公式）**: {desc or '図鑑説明が見つかりませんでした。'}")
+
+        # --- ここから追加 ---
+        trivia_text = trivia_data.get(str(pokemon_id))
+        if trivia_text:
+            st.info(f"🤖 AIの一言（参考・非公式）: {trivia_text}")
+
+        st.caption("※AIの一言は自動生成された参考情報であり、正確性は保証されません。")
+        # --- ここまで追加 ---
 
         components.html("""
         <script>
