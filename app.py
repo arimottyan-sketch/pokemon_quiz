@@ -18,32 +18,53 @@ REGIONS = {
     "パルデア (899-1025)": range(899, 1026)
 }
 
+# 英語タイプ名から日本語への変換辞書
+TYPE_MAP = {
+    "normal": "ノーマル", "fire": "ほのお", "water": "みず", "grass": "くさ",
+    "electric": "でんき", "ice": "こおり", "fighting": "かくとう", "poison": "どく",
+    "ground": "じめん", "flying": "ひこう", "psychic": "エスパー", "bug": "むし",
+    "rock": "いわ", "ghost": "ゴースト", "dragon": "ドラゴン", "dark": "あく",
+    "steel": "はがね", "fairy": "フェアリー"
+}
+
 # -----------------------------
 # API
 # -----------------------------
 @st.cache_data
 def get_pokemon_data(pokemon_id):
     try:
+        # 基本データの取得
         data = requests.get(f"https://pokeapi.co/api/v2/pokemon/{pokemon_id}").json()
 
         img_url = data['sprites']['other']['official-artwork']['front_default']
         if not img_url:
             img_url = data['sprites']['front_default']
 
+        # タイプの日本語変換
+        types_en = [t['type']['name'] for t in data['types']]
+        types_ja = [TYPE_MAP.get(t, t) for t in types_en]
+
+        # 種族データの取得
         s_data = requests.get(data['species']['url']).json()
 
+        # 名前の取得
         name = None
         for lang in ["ja-Hrkt", "ja", "en"]:
             name = next((n['name'] for n in s_data['names'] if n['language']['name'] == lang), None)
             if name:
                 break
 
-        # タイプと図鑑説明を取得
-        types = [t['type']['name'] for t in data['types']]
-        desc = next((f['flavor_text'] for f in s_data['flavor_text_entries'] if f['language']['name'] == 'ja-Hrkt'), "")
-        desc = desc.replace('\n', ' ').replace('\u3000', ' ')
+        # 図鑑説明の取得（ja-Hrkt または ja を優先的に探す）
+        desc = ""
+        for lang_code in ["ja-Hrkt", "ja"]:
+            desc = next((f['flavor_text'] for f in s_data['flavor_text_entries'] if f['language']['name'] == lang_code), "")
+            if desc:
+                break
+        
+        # 不要な文字の掃除
+        desc = desc.replace('\n', ' ').replace('\f', ' ').replace('\u3000', ' ')
 
-        return name, img_url, types, desc
+        return name, img_url, types_ja, desc
     except:
         return None, None, None, None
 
@@ -147,7 +168,8 @@ if "ids" in st.session_state and not st.session_state.finished:
             st.error(message)
         
         # タイプと図鑑説明の表示
-        st.info(f"**タイプ**: {', '.join(types)}  \n**図鑑説明**: {desc}")
+        if types:
+            st.info(f"**タイプ**: {' / '.join(types)}  \n**図鑑説明**: {desc if desc else '図鑑説明が見つかりませんでした。'}")
 
         # ---- 最終JS（フォーカス削除版）----
         components.html("""
